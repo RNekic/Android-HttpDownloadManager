@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.coolerfall.download.DownloadRequest.DownloadState;
@@ -19,7 +20,7 @@ import com.coolerfall.download.DownloadRequest.DownloadState;
  */
 public class DownloadRequestQueue {
 	private static final String TAG = DownloadRequestQueue.class.getSimpleName();
-	
+
 	/** the capacity of download request queue */
 	private static final int CAPACITY = 20;
 	
@@ -55,6 +56,8 @@ public class DownloadRequestQueue {
 
 	/**
 	 * Create the download dispatchers according to pool size.
+	 *
+	 * @param threadPoolSize thread pool size of download dispatcher
 	 */
 	public DownloadRequestQueue(int threadPoolSize) {
 		if (threadPoolSize < 1 || threadPoolSize > 5) {
@@ -79,7 +82,7 @@ public class DownloadRequestQueue {
 			dispatcher.start();
 		}
 	}
-	
+
 	/**
 	 * Stops the download dispatchers.
 	 */
@@ -90,30 +93,40 @@ public class DownloadRequestQueue {
 			}
 		}
 	}
-	
+
 	/**
 	 * Add download request to the download request queue.
 	 * 
-	 * @param request download request
+	 * @param  request download request
+	 * @return         true if the request is not in queue, otherwise return false
 	 */
-	protected void add(DownloadRequest request) {
-		/* if the request is downloading, do nothing */
-		if (query(request.getDownloadId()) != DownloadState.INVALID) {
-			Log.i(TAG, "the download requst is in downloading");
-			return;
+	protected boolean add(DownloadRequest request) {
+		/* check if url is empty */
+		if (TextUtils.isEmpty(request.getUrl())) {
+			Log.w(TAG, "download url cannot be empty");
+			return false;
 		}
-		
+
+		/* if the request is downloading, do nothing */
+		if (query(request.getDownloadId()) != DownloadState.INVALID ||
+			query(request.getUrl()) != DownloadState.INVALID) {
+			Log.w(TAG, "the download requst is in downloading");
+			return false;
+		}
+
 		/* tag the request as belonging to this queue */
 		request.setDownloadQueue(this);
 		/* add it to the set of current requests */
 		synchronized (mCurrentRequests) {
 			mCurrentRequests.add(request);
 		}
-		
+
 		/* process requests in the order they are added in */
 		mDownloadQueue.add(request);
+
+		return true;
 	}
-	
+
 	/**
 	 * Cancel a download in progress.
 	 * 
@@ -129,10 +142,10 @@ public class DownloadRequestQueue {
 				}
 			}
 		}
-		
+
 		return false;
 	}
-	
+
 	/**
 	 * Cancel all the download.
 	 */
@@ -142,10 +155,10 @@ public class DownloadRequestQueue {
 				request.cancel();
 			}
 		}
-		
+
 		mCurrentRequests.clear();
 	}
-	
+
 	/**
 	 * Get the downloading task size.
 	 * 
@@ -154,7 +167,7 @@ public class DownloadRequestQueue {
 	protected int getDownloadingSize() {
 		return mCurrentRequests.size();
 	}
-	
+
 	/**
 	 * To check if the request is downloading according to download id.
 	 *
@@ -169,17 +182,37 @@ public class DownloadRequestQueue {
 				}
 			}
 		}
-		
+
+		return DownloadState.INVALID;
+	}
+
+	/**
+	 * To check if the request is downloading according to download url.
+	 *
+	 * @param  url the url to check
+	 * @return     true if the request is downloading, otherwise return false
+	 */
+	protected DownloadState query(String url) {
+		synchronized (mCurrentRequests) {
+			for (DownloadRequest request : mCurrentRequests) {
+				if (request.getUrl().equals(url)) {
+					return request.getDownloadState();
+				}
+			}
+		}
+
 		return DownloadState.INVALID;
 	}
 
 	/**
 	 * Gets a sequence number.
+	 *
+	 * @return return the sequence number
 	 */
 	public int getSequenceNumber() {
 		return mSequenceGenerator.incrementAndGet();
 	}
-	
+
 	/**
 	 * The download has finished and remove from set.
 	 * 
@@ -190,7 +223,7 @@ public class DownloadRequestQueue {
 			mCurrentRequests.remove(request);
 		}
 	}
-	
+
 	/**
 	 * Release all the resource.
 	 */
@@ -202,15 +235,15 @@ public class DownloadRequestQueue {
 		if (mDownloadQueue != null) {
 			mDownloadQueue = null;
 		}
-		
+
 		/* release dispathcers */
 		if (mDispatchers != null) {
 			stop();
-			
+
 			for (int i = 0; i < mDispatchers.length; i ++) {
 				mDispatchers[i] = null;
 			}
-			
+
 			mDispatchers = null;
 		}
 	}

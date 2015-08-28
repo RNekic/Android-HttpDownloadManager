@@ -32,7 +32,9 @@ public class DownloadDelivery {
 		mDownloadPoster.execute(new Runnable() {
 			@Override
 			public void run() {
-				request.getDownloadListener().onStart(request.getDownloadId(), totalBytes);
+				if (request.getDownloadListener() != null) {
+					request.getDownloadListener().onStart(request.getDownloadId(), totalBytes);
+				}
 			}
 		});
 	}
@@ -46,7 +48,9 @@ public class DownloadDelivery {
 		mDownloadPoster.execute(new Runnable() {
 			@Override
 			public void run() {
-				request.getDownloadListener().onRetry(request.getDownloadId());
+				if (request.getDownloadListener() != null) {
+					request.getDownloadListener().onRetry(request.getDownloadId());
+				}
 			}
 		});
 	}
@@ -63,8 +67,10 @@ public class DownloadDelivery {
 		mDownloadPoster.execute(new Runnable() {
 			@Override
 			public void run() {
-				request.getDownloadListener().onProgress(
-						request.getDownloadId(), bytesWritten, totalBytes);
+				if (request.getDownloadListener() != null) {
+					request.getDownloadListener().onProgress(
+							request.getDownloadId(), bytesWritten, totalBytes);
+				}
 			}
 		});
 	}
@@ -78,22 +84,41 @@ public class DownloadDelivery {
 		mDownloadPoster.execute(new Runnable() {
 			@Override
 			public void run() {
-				request.getDownloadListener().onSuccess(
-						request.getDownloadId(), request.getDestFilePath());
+				if (request.getDownloadListener() != null) {
+					request.getDownloadListener().onSuccess(
+							request.getDownloadId(), request.getDestFilePath());
+				}
+
+				if (request.getSimpleDownloadListener() != null) {
+					request.getSimpleDownloadListener().onSuccess(
+							request.getDownloadId(), request.getDestFilePath()
+					);
+				}
 			}
 		});
 	}
-	
+
 	/**
 	 * Post download failure event.
-	 * 
-	 * @param request download request
+	 *
+	 * @param request    download request
+	 * @param statusCode status code
+	 * @param errMsg     error message
 	 */
 	protected void postFailure(final DownloadRequest request, final int statusCode, final String errMsg) {
 		mDownloadPoster.execute(new Runnable() {
 			@Override
 			public void run() {
-				request.getDownloadListener().onFailure(request.getDownloadId(), statusCode, errMsg);
+				if (request.getDownloadListener() != null) {
+					request.getDownloadListener().onFailure(
+							request.getDownloadId(), statusCode, errMsg);
+				}
+
+				if (request.getSimpleDownloadListener() != null) {
+					request.getSimpleDownloadListener().onFailure(
+							request.getDownloadId(), statusCode, errMsg
+					);
+				}
 			}
 		});
 	}

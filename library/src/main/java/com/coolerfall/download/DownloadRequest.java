@@ -71,9 +71,15 @@ public class DownloadRequest implements Comparable<DownloadRequest> {
 	/** download listener */
 	private DownloadListener mDownloadListener;
 
+<<<<<<< HEAD
 	/** custom headers to use for this request **/
 	private HashMap<String, String> mHeaders;
 
+=======
+	/* simple download listener */
+	private SimpleDownloadListener mSimpleDownloadListener;
+	
+>>>>>>> Coolerfall/master
 	/**
 	 * Priority values: download request will be processed from 
 	 * higher priorities to lower priorities.
@@ -202,6 +208,27 @@ public class DownloadRequest implements Comparable<DownloadRequest> {
 	 */
 	protected DownloadListener getDownloadListener() {
 		return mDownloadListener;
+	}
+
+	/**
+	 * Set simple download listener.
+	 *
+	 * @param  sl simple download listener
+	 * @return    this Request object to allow for chaining
+	 */
+	public DownloadRequest setSimpleDownloadListener(SimpleDownloadListener sl) {
+		mSimpleDownloadListener = sl;
+
+		return this;
+	}
+
+	/**
+	 * Get the simple download listener of this request.
+	 *
+	 * @return simple download listener
+	 */
+	protected SimpleDownloadListener getSimpleDownloadListener() {
+		return mSimpleDownloadListener;
 	}
 	
 	/**
@@ -343,15 +370,7 @@ public class DownloadRequest implements Comparable<DownloadRequest> {
 
 	/** get the default download file path */
 	private String getDefaultFilePath() {
-		String filename = mTimestamp + ".down";
-		int index = mUrl.lastIndexOf(File.separator);
-		if (index > 0 && mUrl.length() >= index) {
-			filename = mUrl.substring(index);
-		}
-
-		//TODO: to get real filename for the sepecified url according to headers
-
-		return DEFAULT_DIR + File.separator + filename;
+		return DEFAULT_DIR + File.separator + DownloadUtils.getFilenameFromHeader(mUrl);
 	}
 
 	/**
@@ -372,7 +391,8 @@ public class DownloadRequest implements Comparable<DownloadRequest> {
 	 * according to the file path. This file path must be absolute file
 	 * path(such as: /sdcard/test.txt).
 	 *
-	 * @return  this Request object to allow for chaining.
+	 * @param  filePath destination file path
+	 * @return          this Request object to allow for chaining.
 	 */
 	public DownloadRequest setDestFilePath(String filePath) {
 		mDestinationFilePath = filePath;
@@ -389,7 +409,6 @@ public class DownloadRequest implements Comparable<DownloadRequest> {
 	protected String getDestFilePath() {
 		/* if the destination file path is empty, use default file path */
 		if (TextUtils.isEmpty(mDestinationFilePath)) {
-			Log.w(TAG, "the destination file path should not be empty");
 			mDestinationFilePath = getDefaultFilePath();
 		}
 
@@ -423,7 +442,9 @@ public class DownloadRequest implements Comparable<DownloadRequest> {
 	}
 	
 	/**
-     * Returns true if this request has been canceled.
+	 * To check if current request has canceled.
+	 *
+     * @return Returns true if this request has been canceled.
      */
 	protected boolean isCanceled() {
 		return mCanceled;
